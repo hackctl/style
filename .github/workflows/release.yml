@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          rm -rf hackctl-ui
+          mkdir -p hackctl-ui/components hackctl-ui/lib
+          cp src/components/ui.jsx hackctl-ui/components/ui.jsx
+          cp src/lib/theme.jsx hackctl-ui/lib/theme.jsx
+          cp src/lib/utils.js hackctl-ui/lib/utils.js
+          cp src/index.css hackctl-ui/index.css
+          zip -r hackctl-ui.zip hackctl-ui
+      - id: tag
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-${GITHUB_RUN_NUMBER}"
+          echo "name=$TAG" >> "$GITHUB_OUTPUT"
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          files: hackctl-ui.zip
+          generate_release_notes: true
